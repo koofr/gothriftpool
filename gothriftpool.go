@@ -88,11 +88,15 @@ func (p *Proxy) {{.Name}}({{range .Params}}{{.Name}} {{.Type}}, {{end}})({{range
 		if isThriftTransportException(err) {
 			poolResource.Close()
 
+			p.pool.Release(poolResource)
+
 			p.pool.Empty()
 
 			returnErr = err
 			continue
 		}
+
+		p.pool.Release(poolResource)
 
 		return {{range $i, $e := .Res}}{{if $i}}, {{end}}{{.Name}}{{end}}
 	}
