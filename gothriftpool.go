@@ -2,6 +2,7 @@ package gothriftpool
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/koofr/gointerfacer"
 	"go/format"
 	"text/template"
@@ -64,41 +65,45 @@ func (p *Proxy) createResource() (r resourcepool.Resource, err error) {
 	return
 }
 
-{{range .Functions}}
-func (p *Proxy) {{.Name}}({{range .Params}}{{.Name}} {{.Type}}, {{end}})({{range .Res}}{{.Name}} {{.Type}}, {{end}}){
-	var returnErr error
-
+func (p *Proxy) getResource() (r resourcepool.Resource, err error) {
 	for i := 0; i < 2; i++ {
-		poolResource, err := p.pool.Acquire()
+		r, err = p.pool.Acquire()
 
 		if err != nil {
-			returnErr = err
 			continue
 		}
 
-		client := poolResource.(*resource).client
-
-		{{range $i, $e := .Res}}{{if $i}}, {{end}}{{.Name}}{{end}} = client.{{.Name}}({{range .Params}}{{.Name}}, {{end}})
+		err = r.(*resource).client.Ping()
 
 		if err != nil {
-			poolResource.Close()
+			r.Close()
 
-			p.pool.Release(poolResource)
+			p.pool.Release(r)
+
+			r = nil
 
 			p.pool.Empty()
 
-			returnErr = err
 			continue
 		}
 
-		p.pool.Release(poolResource)
-
-		return {{range $i, $e := .Res}}{{if $i}}, {{end}}{{.Name}}{{end}}
+		return
 	}
 
-	err = returnErr
-
 	return
+}
+
+{{range .Functions}}
+func (p *Proxy) {{.Name}}({{range .Params}}{{.Name}} {{.Type}}, {{end}})({{range .Res}}{{.Name}} {{.Type}}, {{end}}){
+	poolResource, err := p.getResource()
+
+	if err != nil {
+		return
+	}
+
+	defer p.pool.Release(poolResource)
+
+	return poolResource.(*resource).client.{{.Name}}({{range .Params}}{{.Name}}, {{end}})
 }
 {{end}}
 `
@@ -131,6 +136,18 @@ func NewGenerator(iface string) (g *Generator, err error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	var pingFunc *gointerfacer.Func
+
+	for _, f := range functions {
+		if f.Name == "Ping" && len(f.Params) == 0 && len(f.Res) == 1 && f.Res[0].Type == "error" {
+			pingFunc = &f
+		}
+	}
+
+	if pingFunc == nil {
+		return nil, fmt.Errorf("Interface %s does not contain function Ping() error", iface)
 	}
 
 	g = &Generator{

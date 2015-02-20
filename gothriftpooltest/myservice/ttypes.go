@@ -5,7 +5,7 @@ package myservice
 
 import (
 	"fmt"
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/koofr/thrift/lib/go/thrift"
 	"math"
 )
 

@@ -63,40 +63,56 @@ func (p *Proxy) createResource() (r resourcepool.Resource, err error) {
 	return
 }
 
-func (p *Proxy) GetResult(id myservice.UUID, req *myservice.MyRequest) (r *myservice.MyResult, me *myservice.MyException, err error) {
-	var returnErr error
-
+func (p *Proxy) getResource() (r resourcepool.Resource, err error) {
 	for i := 0; i < 2; i++ {
-		poolResource, err := p.pool.Acquire()
+		r, err = p.pool.Acquire()
 
 		if err != nil {
-			returnErr = err
 			continue
 		}
 
-		client := poolResource.(*resource).client
-
-		r, me, err = client.GetResult(id, req)
+		err = r.(*resource).client.Ping()
 
 		if err != nil {
-			poolResource.Close()
+			r.Close()
 
-			p.pool.Release(poolResource)
+			p.pool.Release(r)
+
+			r = nil
 
 			p.pool.Empty()
 
-			returnErr = err
 			continue
 		}
 
-		p.pool.Release(poolResource)
-
-		return r, me, err
+		return
 	}
 
-	err = returnErr
-
 	return
+}
+
+func (p *Proxy) Ping() (err error) {
+	poolResource, err := p.getResource()
+
+	if err != nil {
+		return
+	}
+
+	defer p.pool.Release(poolResource)
+
+	return poolResource.(*resource).client.Ping()
+}
+
+func (p *Proxy) GetResult(id myservice.UUID, req *myservice.MyRequest) (r *myservice.MyResult, me *myservice.MyException, err error) {
+	poolResource, err := p.getResource()
+
+	if err != nil {
+		return
+	}
+
+	defer p.pool.Release(poolResource)
+
+	return poolResource.(*resource).client.GetResult(id, req)
 }
 `
 

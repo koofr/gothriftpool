@@ -6,7 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/koofr/thrift/lib/go/thrift"
 	"math"
 	"myservice"
 	"net"
@@ -20,6 +20,7 @@ func Usage() {
 	fmt.Fprintln(os.Stderr, "Usage of ", os.Args[0], " [-h host:port] [-u url] [-f[ramed]] function [arg1 [arg2...]]:")
 	flag.PrintDefaults()
 	fmt.Fprintln(os.Stderr, "\nFunctions:")
+	fmt.Fprintln(os.Stderr, "  void ping()")
 	fmt.Fprintln(os.Stderr, "  MyResult get_result(UUID id, MyRequest req)")
 	fmt.Fprintln(os.Stderr)
 	os.Exit(0)
@@ -115,6 +116,14 @@ func main() {
 	}
 
 	switch cmd {
+	case "ping":
+		if flag.NArg()-1 != 0 {
+			fmt.Fprintln(os.Stderr, "Ping requires 0 args")
+			flag.Usage()
+		}
+		fmt.Print(client.Ping())
+		fmt.Print("\n")
+		break
 	case "get_result":
 		if flag.NArg()-1 != 2 {
 			fmt.Fprintln(os.Stderr, "GetResult requires 2 args")
@@ -122,19 +131,19 @@ func main() {
 		}
 		argvalue0 := flag.Arg(1)
 		value0 := myservice.UUID(argvalue0)
-		arg7 := flag.Arg(2)
-		mbTrans8 := thrift.NewTMemoryBufferLen(len(arg7))
-		defer mbTrans8.Close()
-		_, err9 := mbTrans8.WriteString(arg7)
-		if err9 != nil {
+		arg11 := flag.Arg(2)
+		mbTrans12 := thrift.NewTMemoryBufferLen(len(arg11))
+		defer mbTrans12.Close()
+		_, err13 := mbTrans12.WriteString(arg11)
+		if err13 != nil {
 			Usage()
 			return
 		}
-		factory10 := thrift.NewTSimpleJSONProtocolFactory()
-		jsProt11 := factory10.GetProtocol(mbTrans8)
+		factory14 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt15 := factory14.GetProtocol(mbTrans12)
 		argvalue1 := myservice.NewMyRequest()
-		err12 := argvalue1.Read(jsProt11)
-		if err12 != nil {
+		err16 := argvalue1.Read(jsProt15)
+		if err16 != nil {
 			Usage()
 			return
 		}
