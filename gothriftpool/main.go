@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/koofr/gothriftpool"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/koofr/gothriftpool"
 )
 
 const usage = `gothriftpool [options] <iface>
@@ -44,7 +45,6 @@ func main() {
 	iface := flag.Arg(0)
 
 	generator, err := gothriftpool.NewGenerator(iface)
-
 	if err != nil {
 		fatal(err)
 	}
