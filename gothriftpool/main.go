@@ -3,9 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/koofr/gothriftpool"
 )
@@ -28,7 +26,6 @@ func fatal(msg interface{}) {
 
 func main() {
 	var packageName = flag.String("p", "", "generated package name")
-	var write = flag.Bool("w", false, "write generated template to $GOPATH/packageName")
 
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, usage)
@@ -59,25 +56,5 @@ func main() {
 		fatal(err)
 	}
 
-	if *write {
-		parent := filepath.Join(os.Getenv("GOPATH"), "src", generator.ProxyPackage)
-
-		err = os.MkdirAll(parent, 0755)
-
-		if err != nil {
-			fatal(err)
-		}
-
-		filename := generator.ProxyPackage + ".go"
-
-		path := filepath.Join(parent, filename)
-
-		err := ioutil.WriteFile(path, code, 0644)
-
-		if err != nil {
-			fatal(err)
-		}
-	} else {
-		fmt.Println(string(code))
-	}
+	os.Stdout.Write(code)
 }
