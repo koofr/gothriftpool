@@ -58,11 +58,13 @@ func (r *resource) IsClosed() bool {
 type ClientPool struct {
 	clientFactory ClientFactory
 	pool          *resourcepool.ResourcePool
+	retries       int
 }
 
 func NewClientPool(clientFactory ClientFactory, idleCapacity int, maxResources int) *ClientPool {
 	p := &ClientPool{
 		clientFactory: clientFactory,
+		retries:       2,
 	}
 
 	p.pool = resourcepool.NewResourcePool(p.createResource, idleCapacity, maxResources)
@@ -74,6 +76,10 @@ func (p *ClientPool) Close() {
 	p.pool.Close()
 }
 
+func (p *ClientPool) SetRetries(retries int) {
+	p.retries = retries
+}
+
 func (p *ClientPool) GetPool() *resourcepool.ResourcePool {
 	return p.pool
 }
@@ -81,7 +87,7 @@ func (p *ClientPool) GetPool() *resourcepool.ResourcePool {
 func (p *ClientPool) createResource(ctx context.Context) (r resourcepool.Resource, err error) {
 	client, close, err := p.clientFactory(ctx)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	r = &resource{
@@ -96,7 +102,7 @@ func (p *ClientPool) createResource(ctx context.Context) (r resourcepool.Resourc
 func (p *ClientPool) GetClient(ctx context.Context) (client {{.ClientType}}, release func(), err error) {
 	var lastErr error
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < p.retries; i++ {
 		r, err := p.pool.Acquire(ctx)
 		if err != nil {
 			if err == context.Canceled || err == context.DeadlineExceeded {
