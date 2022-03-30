@@ -128,6 +128,10 @@ func (p *ClientPool) GetClient(ctx context.Context) (client {{.ClientType}}, rel
 		}
 
 		release = func() {
+			if ctx.Err() != nil {
+				r.Close()
+			}
+
 			p.pool.Release(r)
 		}
 
